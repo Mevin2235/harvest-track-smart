@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,7 +31,9 @@ import {
   Users, 
   Wheat,
   User,
-  Scale
+  Scale,
+  Edit,
+  Save
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
@@ -59,6 +60,17 @@ interface CropBatch {
 const AdminDashboard = () => {
   const [batches, setBatches] = useState<CropBatch[]>([]);
   const [selectedBatch, setSelectedBatch] = useState<CropBatch | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState({
+    cropName: "",
+    quantity: "",
+    unit: "",
+    harvestDate: "",
+    location: "",
+    grade: "",
+    packagingType: "",
+    weight: "",
+  });
   const [storageData, setStorageData] = useState({
     temperature: "",
     humidity: "",
@@ -81,11 +93,58 @@ const AdminDashboard = () => {
 
   const handleProcessBatch = (batch: CropBatch) => {
     setSelectedBatch(batch);
+    setIsEditing(false);
+    
+    // Pre-fill edit data
+    setEditData({
+      cropName: batch.cropName,
+      quantity: batch.quantity.toString(),
+      unit: batch.unit,
+      harvestDate: batch.harvestDate,
+      location: batch.location,
+      grade: batch.grade || "",
+      packagingType: batch.packagingType || "",
+      weight: batch.weight?.toString() || "",
+    });
+    
     // Pre-fill existing storage data if available
     setStorageData({
       temperature: batch.temperature?.toString() || "",
       humidity: batch.humidity?.toString() || "",
       storageStartDate: batch.storageStartDate || "",
+    });
+  };
+
+  const handleSaveEdit = () => {
+    if (!selectedBatch) return;
+
+    setIsProcessing(true);
+
+    const updatedBatch: CropBatch = {
+      ...selectedBatch,
+      cropName: editData.cropName,
+      quantity: parseFloat(editData.quantity),
+      unit: editData.unit,
+      harvestDate: editData.harvestDate,
+      location: editData.location,
+      grade: editData.grade as "A" | "B" | "C",
+      packagingType: editData.packagingType,
+      weight: editData.weight ? parseFloat(editData.weight) : undefined,
+    };
+
+    const updatedBatches = batches.map(batch => 
+      batch.id === selectedBatch.id ? updatedBatch : batch
+    );
+
+    setBatches(updatedBatches);
+    localStorage.setItem("cropBatches", JSON.stringify(updatedBatches));
+    setSelectedBatch(updatedBatch);
+    setIsEditing(false);
+    setIsProcessing(false);
+
+    toast({
+      title: "Batch Updated",
+      description: "Crop batch details have been updated successfully",
     });
   };
 
@@ -346,42 +405,162 @@ const AdminDashboard = () => {
                                 Process
                               </Button>
                             </DialogTrigger>
-                            <DialogContent className="max-w-2xl">
+                            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                               <DialogHeader>
-                                <DialogTitle>Process Crop Batch - {batch.farmerName}</DialogTitle>
+                                <DialogTitle className="flex items-center space-x-2">
+                                  <span>Process Crop Batch - {batch.farmerName}</span>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setIsEditing(!isEditing)}
+                                  >
+                                    <Edit className="h-4 w-4 mr-1" />
+                                    {isEditing ? "Cancel Edit" : "Edit Details"}
+                                  </Button>
+                                </DialogTitle>
                               </DialogHeader>
                               
-                              <div className="grid grid-cols-2 gap-4 mb-6">
+                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                                 <div>
-                                  <h3 className="font-semibold mb-2">Batch Information</h3>
-                                  <div className="space-y-2 text-sm">
-                                    <p><span className="font-medium">Farmer:</span> {batch.farmerName}</p>
-                                    <p><span className="font-medium">Crop:</span> {batch.cropName}</p>
-                                    <p><span className="font-medium">Quantity:</span> {batch.quantity} {batch.unit}</p>
-                                    <p><span className="font-medium">Harvest Date:</span> {batch.harvestDate}</p>
-                                    <p><span className="font-medium">Location:</span> {batch.location}</p>
-                                    <p><span className="font-medium">Submitted:</span> {batch.submittedDate}</p>
-                                  </div>
+                                  <h3 className="font-semibold mb-4">Batch Information</h3>
+                                  {isEditing ? (
+                                    <div className="space-y-4">
+                                      <div className="space-y-2">
+                                        <Label htmlFor="cropName">Crop Name</Label>
+                                        <Input
+                                          id="cropName"
+                                          value={editData.cropName}
+                                          onChange={(e) => setEditData({...editData, cropName: e.target.value})}
+                                        />
+                                      </div>
+                                      
+                                      <div className="grid grid-cols-2 gap-2">
+                                        <div className="space-y-2">
+                                          <Label htmlFor="quantity">Quantity</Label>
+                                          <Input
+                                            id="quantity"
+                                            type="number"
+                                            value={editData.quantity}
+                                            onChange={(e) => setEditData({...editData, quantity: e.target.value})}
+                                          />
+                                        </div>
+                                        <div className="space-y-2">
+                                          <Label htmlFor="unit">Unit</Label>
+                                          <Select
+                                            value={editData.unit}
+                                            onValueChange={(value) => setEditData({...editData, unit: value})}
+                                          >
+                                            <SelectTrigger>
+                                              <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="kg">kg</SelectItem>
+                                              <SelectItem value="tons">tons</SelectItem>
+                                              <SelectItem value="bags">bags</SelectItem>
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+                                      </div>
+
+                                      <div className="space-y-2">
+                                        <Label htmlFor="harvestDate">Harvest Date</Label>
+                                        <Input
+                                          id="harvestDate"
+                                          type="date"
+                                          value={editData.harvestDate}
+                                          onChange={(e) => setEditData({...editData, harvestDate: e.target.value})}
+                                        />
+                                      </div>
+
+                                      <div className="space-y-2">
+                                        <Label htmlFor="location">Location</Label>
+                                        <Input
+                                          id="location"
+                                          value={editData.location}
+                                          onChange={(e) => setEditData({...editData, location: e.target.value})}
+                                        />
+                                      </div>
+
+                                      <Button 
+                                        onClick={handleSaveEdit}
+                                        disabled={isProcessing}
+                                        className="w-full"
+                                      >
+                                        <Save className="h-4 w-4 mr-2" />
+                                        {isProcessing ? "Saving..." : "Save Changes"}
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <div className="space-y-2 text-sm">
+                                      <p><span className="font-medium">Farmer:</span> {selectedBatch?.farmerName}</p>
+                                      <p><span className="font-medium">Crop:</span> {selectedBatch?.cropName}</p>
+                                      <p><span className="font-medium">Quantity:</span> {selectedBatch?.quantity} {selectedBatch?.unit}</p>
+                                      <p><span className="font-medium">Harvest Date:</span> {selectedBatch?.harvestDate}</p>
+                                      <p><span className="font-medium">Location:</span> {selectedBatch?.location}</p>
+                                      <p><span className="font-medium">Submitted:</span> {selectedBatch?.submittedDate}</p>
+                                    </div>
+                                  )}
                                 </div>
                                 
                                 <div>
-                                  <h3 className="font-semibold mb-2">Farmer-Provided Details</h3>
-                                  <div className="space-y-2 text-sm bg-blue-50 p-3 rounded-md">
-                                    <p><span className="font-medium">Grade:</span> {batch.grade}</p>
-                                    <p><span className="font-medium">Packaging:</span> {batch.packagingType}</p>
-                                    <p><span className="font-medium">Weight:</span> {batch.weight} kg</p>
-                                  </div>
+                                  <h3 className="font-semibold mb-4">Quality Details</h3>
+                                  {isEditing ? (
+                                    <div className="space-y-4">
+                                      <div className="space-y-2">
+                                        <Label htmlFor="grade">Grade</Label>
+                                        <Select
+                                          value={editData.grade}
+                                          onValueChange={(value) => setEditData({...editData, grade: value})}
+                                        >
+                                          <SelectTrigger>
+                                            <SelectValue placeholder="Select grade" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="A">Grade A</SelectItem>
+                                            <SelectItem value="B">Grade B</SelectItem>
+                                            <SelectItem value="C">Grade C</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+
+                                      <div className="space-y-2">
+                                        <Label htmlFor="packagingType">Packaging Type</Label>
+                                        <Input
+                                          id="packagingType"
+                                          value={editData.packagingType}
+                                          onChange={(e) => setEditData({...editData, packagingType: e.target.value})}
+                                          placeholder="e.g., Jute bags, Plastic containers"
+                                        />
+                                      </div>
+
+                                      <div className="space-y-2">
+                                        <Label htmlFor="weight">Weight (kg)</Label>
+                                        <Input
+                                          id="weight"
+                                          type="number"
+                                          value={editData.weight}
+                                          onChange={(e) => setEditData({...editData, weight: e.target.value})}
+                                        />
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="space-y-2 text-sm bg-blue-50 p-3 rounded-md">
+                                      <p><span className="font-medium">Grade:</span> {selectedBatch?.grade}</p>
+                                      <p><span className="font-medium">Packaging:</span> {selectedBatch?.packagingType}</p>
+                                      <p><span className="font-medium">Weight:</span> {selectedBatch?.weight} kg</p>
+                                    </div>
+                                  )}
                                   
                                   <div className="mt-4">
                                     <h4 className="font-semibold mb-2">Current Status</h4>
-                                    <Badge className={getStatusColor(batch.status)}>
-                                      {batch.status}
+                                    <Badge className={getStatusColor(selectedBatch?.status || "")}>
+                                      {selectedBatch?.status}
                                     </Badge>
                                   </div>
                                 </div>
                               </div>
 
-                              {batch.status === "Pending" && (
+                              {selectedBatch?.status === "Pending" && !isEditing && (
                                 <div className="space-y-4">
                                   <h3 className="font-semibold">Storage Conditions (Optional)</h3>
                                   
@@ -441,13 +620,13 @@ const AdminDashboard = () => {
                                 </div>
                               )}
 
-                              {batch.status === "Approved" && (
+                              {selectedBatch?.status === "Approved" && (
                                 <div className="bg-green-50 p-4 rounded-md">
                                   <h4 className="font-semibold mb-2">Storage Conditions</h4>
                                   <div className="grid grid-cols-3 gap-4 text-sm">
-                                    {batch.storageStartDate && <p><span className="font-medium">Storage Start:</span> {batch.storageStartDate}</p>}
-                                    {batch.temperature && <p><span className="font-medium">Temperature:</span> {batch.temperature}°C</p>}
-                                    {batch.humidity && <p><span className="font-medium">Humidity:</span> {batch.humidity}%</p>}
+                                    {selectedBatch.storageStartDate && <p><span className="font-medium">Storage Start:</span> {selectedBatch.storageStartDate}</p>}
+                                    {selectedBatch.temperature && <p><span className="font-medium">Temperature:</span> {selectedBatch.temperature}°C</p>}
+                                    {selectedBatch.humidity && <p><span className="font-medium">Humidity:</span> {selectedBatch.humidity}%</p>}
                                   </div>
                                 </div>
                               )}
