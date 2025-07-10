@@ -24,3 +24,9 @@ export const requireAuth = (userType: "farmer" | "admin"): boolean => {
   const currentUserType = getUserType();
   return isAuthenticated() && currentUserType === userType;
 };
+
+// Helper function to get unique user identifier
+export const getUserId = (): string | null => {
+  const currentUser = getCurrentUser();
+  return currentUser?.id || currentUser?.username || null;
+};

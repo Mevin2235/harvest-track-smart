@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Wheat, Plus, Eye, LogOut, Package, MapPin, Calendar, Scale } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
+import { getCurrentUser } from "@/utils/auth";
 
 interface CropBatch {
   id: string;
@@ -25,6 +25,8 @@ interface CropBatch {
   humidity?: number;
   storageStartDate?: string;
   submittedDate: string;
+  farmerId: string;
+  farmerName: string;
 }
 
 const FarmerDashboard = () => {
@@ -38,21 +40,40 @@ const FarmerDashboard = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
-  const username = localStorage.getItem("username") || "Farmer";
+  const currentUser = getCurrentUser();
+  const username = currentUser?.username || "Farmer";
 
   useEffect(() => {
-    // Load existing batches from localStorage
+    loadUserBatches();
+  }, []);
+
+  const loadUserBatches = () => {
+    // Load all batches from localStorage
     const savedBatches = localStorage.getItem("cropBatches");
     if (savedBatches) {
-      setBatches(JSON.parse(savedBatches));
+      const allBatches = JSON.parse(savedBatches);
+      // Filter batches to show only current user's batches
+      const userBatches = allBatches.filter((batch: CropBatch) => 
+        batch.farmerId === currentUser?.id || batch.farmerId === currentUser?.username
+      );
+      setBatches(userBatches);
     }
-  }, []);
+  };
 
   const handleSubmitBatch = () => {
     if (!newBatch.cropName || !newBatch.quantity || !newBatch.harvestDate || !newBatch.location) {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!currentUser) {
+      toast({
+        title: "Authentication Error",
+        description: "Please log in again",
         variant: "destructive",
       });
       return;
@@ -69,11 +90,23 @@ const FarmerDashboard = () => {
       location: newBatch.location,
       status: "Pending",
       submittedDate: new Date().toISOString().split("T")[0],
+      farmerId: currentUser.id || currentUser.username,
+      farmerName: currentUser.username,
     };
 
-    const updatedBatches = [...batches, batch];
-    setBatches(updatedBatches);
-    localStorage.setItem("cropBatches", JSON.stringify(updatedBatches));
+    // Load all existing batches
+    const savedBatches = localStorage.getItem("cropBatches");
+    const allBatches = savedBatches ? JSON.parse(savedBatches) : [];
+    
+    // Add new batch to all batches
+    const updatedAllBatches = [...allBatches, batch];
+    localStorage.setItem("cropBatches", JSON.stringify(updatedAllBatches));
+
+    // Update local state with user's batches only
+    const userBatches = updatedAllBatches.filter((b: CropBatch) => 
+      b.farmerId === currentUser.id || b.farmerId === currentUser.username
+    );
+    setBatches(userBatches);
 
     setNewBatch({
       cropName: "",
@@ -94,6 +127,7 @@ const FarmerDashboard = () => {
   const handleLogout = () => {
     localStorage.removeItem("userType");
     localStorage.removeItem("username");
+    localStorage.removeItem("currentUser");
     navigate("/");
     toast({
       title: "Logged Out",
@@ -276,7 +310,7 @@ const FarmerDashboard = () => {
           {/* Batch List */}
           <Card className="lg:col-span-2">
             <CardHeader>
-              <CardTitle>Your Crop Batches</CardTitle>
+              <CardTitle>My Crop Batches</CardTitle>
             </CardHeader>
             <CardContent>
               {batches.length === 0 ? (
