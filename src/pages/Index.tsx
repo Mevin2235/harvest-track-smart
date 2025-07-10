@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Wheat, Users, ShieldCheck, Truck, Package, Thermometer } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 
 const Index = () => {
@@ -23,9 +23,46 @@ const Index = () => {
       return;
     }
 
-    // Store user type in localStorage for demo purposes
-    localStorage.setItem("userType", userType);
-    localStorage.setItem("username", loginData.username);
+    // Check credentials based on user type
+    if (userType === "farmer") {
+      const farmers = JSON.parse(localStorage.getItem("farmers") || "[]");
+      const farmer = farmers.find((f: any) => 
+        f.username === loginData.username && f.password === loginData.password
+      );
+
+      if (!farmer) {
+        toast({
+          title: "Login Failed",
+          description: "Invalid username or password for farmer account",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Store authenticated user data
+      localStorage.setItem("userType", "farmer");
+      localStorage.setItem("currentUser", JSON.stringify(farmer));
+      localStorage.setItem("username", farmer.username);
+    } else {
+      const admins = JSON.parse(localStorage.getItem("admins") || "[]");
+      const admin = admins.find((a: any) => 
+        a.username === loginData.username && a.password === loginData.password
+      );
+
+      if (!admin) {
+        toast({
+          title: "Login Failed",
+          description: "Invalid username or password for admin account",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Store authenticated user data
+      localStorage.setItem("userType", "admin");
+      localStorage.setItem("currentUser", JSON.stringify(admin));
+      localStorage.setItem("username", admin.username);
+    }
 
     toast({
       title: "Login Successful",
@@ -183,9 +220,15 @@ const Index = () => {
                   </TabsContent>
                 </Tabs>
 
-                <div className="mt-6 pt-4 border-t border-gray-200">
-                  <p className="text-xs text-center text-gray-500">
-                    Demo credentials: Use any username/password combination
+                <div className="mt-6 pt-4 border-t border-gray-200 text-center">
+                  <p className="text-sm text-gray-600">
+                    Don't have an account?{" "}
+                    <Link to="/signup" className="text-green-600 hover:text-green-800 font-medium">
+                      Sign up here
+                    </Link>
+                  </p>
+                  <p className="text-xs text-center text-gray-500 mt-2">
+                    Demo: Create an account or use existing credentials
                   </p>
                 </div>
               </CardContent>
