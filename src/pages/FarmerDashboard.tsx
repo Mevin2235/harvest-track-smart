@@ -1,9 +1,11 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Wheat, Plus, Eye, LogOut, Package, MapPin, Calendar, Scale } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -37,6 +39,9 @@ const FarmerDashboard = () => {
     unit: "kg",
     harvestDate: "",
     location: "",
+    grade: "",
+    packagingType: "",
+    weight: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
@@ -61,10 +66,10 @@ const FarmerDashboard = () => {
   };
 
   const handleSubmitBatch = () => {
-    if (!newBatch.cropName || !newBatch.quantity || !newBatch.harvestDate || !newBatch.location) {
+    if (!newBatch.cropName || !newBatch.quantity || !newBatch.harvestDate || !newBatch.location || !newBatch.grade || !newBatch.packagingType || !newBatch.weight) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all required fields",
+        description: "Please fill in all required fields including grade, packaging type, and weight",
         variant: "destructive",
       });
       return;
@@ -89,6 +94,9 @@ const FarmerDashboard = () => {
       harvestDate: newBatch.harvestDate,
       location: newBatch.location,
       status: "Pending",
+      grade: newBatch.grade as "A" | "B" | "C",
+      packagingType: newBatch.packagingType,
+      weight: parseFloat(newBatch.weight),
       submittedDate: new Date().toISOString().split("T")[0],
       farmerId: currentUser.id || currentUser.username,
       farmerName: currentUser.username,
@@ -114,13 +122,16 @@ const FarmerDashboard = () => {
       unit: "kg",
       harvestDate: "",
       location: "",
+      grade: "",
+      packagingType: "",
+      weight: "",
     });
 
     setIsSubmitting(false);
 
     toast({
       title: "Batch Submitted Successfully",
-      description: "Your crop batch has been submitted for review",
+      description: "Your crop batch has been submitted for review with grading details",
     });
   };
 
@@ -297,6 +308,41 @@ const FarmerDashboard = () => {
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="grade">Grade *</Label>
+                <Select value={newBatch.grade} onValueChange={(value) => setNewBatch({...newBatch, grade: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select grade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="A">Grade A</SelectItem>
+                    <SelectItem value="B">Grade B</SelectItem>
+                    <SelectItem value="C">Grade C</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="packagingType">Packaging Type *</Label>
+                <Input
+                  id="packagingType"
+                  placeholder="e.g., Jute bags, Plastic bags"
+                  value={newBatch.packagingType}
+                  onChange={(e) => setNewBatch({ ...newBatch, packagingType: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="weight">Weight (kg) *</Label>
+                <Input
+                  id="weight"
+                  type="number"
+                  placeholder="1000"
+                  value={newBatch.weight}
+                  onChange={(e) => setNewBatch({ ...newBatch, weight: e.target.value })}
+                />
+              </div>
+
               <Button
                 onClick={handleSubmitBatch}
                 disabled={isSubmitting}
@@ -344,28 +390,37 @@ const FarmerDashboard = () => {
                         </div>
                       </div>
 
+                      <div className="bg-blue-50 p-3 rounded-md mb-3">
+                        <div className="grid grid-cols-3 gap-4 text-sm">
+                          <div className="flex items-center space-x-2">
+                            <Scale className="h-4 w-4 text-blue-600" />
+                            <span>Grade: {batch.grade}</span>
+                          </div>
+                          <div>
+                            <span className="font-medium">Packaging:</span> {batch.packagingType}
+                          </div>
+                          <div>
+                            <span className="font-medium">Weight:</span> {batch.weight} kg
+                          </div>
+                        </div>
+                      </div>
+
                       {batch.status === "Approved" && (
                         <div className="bg-green-50 p-3 rounded-md">
                           <div className="grid grid-cols-2 gap-4 text-sm">
-                            {batch.grade && (
-                              <div className="flex items-center space-x-2">
-                                <Scale className="h-4 w-4 text-green-600" />
-                                <span>Grade: {batch.grade}</span>
-                              </div>
-                            )}
-                            {batch.packagingType && (
-                              <div>
-                                <span className="font-medium">Packaging:</span> {batch.packagingType}
-                              </div>
-                            )}
-                            {batch.weight && (
-                              <div>
-                                <span className="font-medium">Weight:</span> {batch.weight} kg
-                              </div>
-                            )}
                             {batch.temperature && (
                               <div>
                                 <span className="font-medium">Storage Temp:</span> {batch.temperature}°C
+                              </div>
+                            )}
+                            {batch.humidity && (
+                              <div>
+                                <span className="font-medium">Humidity:</span> {batch.humidity}%
+                              </div>
+                            )}
+                            {batch.storageStartDate && (
+                              <div>
+                                <span className="font-medium">Storage Start:</span> {batch.storageStartDate}
                               </div>
                             )}
                           </div>

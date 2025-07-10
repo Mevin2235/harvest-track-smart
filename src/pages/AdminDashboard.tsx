@@ -31,7 +31,8 @@ import {
   X, 
   Users, 
   Wheat,
-  User
+  User,
+  Scale
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
@@ -58,10 +59,7 @@ interface CropBatch {
 const AdminDashboard = () => {
   const [batches, setBatches] = useState<CropBatch[]>([]);
   const [selectedBatch, setSelectedBatch] = useState<CropBatch | null>(null);
-  const [gradingData, setGradingData] = useState({
-    grade: "",
-    packagingType: "",
-    weight: "",
+  const [storageData, setStorageData] = useState({
     temperature: "",
     humidity: "",
     storageStartDate: "",
@@ -83,11 +81,8 @@ const AdminDashboard = () => {
 
   const handleProcessBatch = (batch: CropBatch) => {
     setSelectedBatch(batch);
-    // Pre-fill existing data if available
-    setGradingData({
-      grade: batch.grade || "",
-      packagingType: batch.packagingType || "",
-      weight: batch.weight?.toString() || "",
+    // Pre-fill existing storage data if available
+    setStorageData({
       temperature: batch.temperature?.toString() || "",
       humidity: batch.humidity?.toString() || "",
       storageStartDate: batch.storageStartDate || "",
@@ -97,26 +92,14 @@ const AdminDashboard = () => {
   const handleApproveBatch = () => {
     if (!selectedBatch) return;
 
-    if (!gradingData.grade || !gradingData.packagingType || !gradingData.weight) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in Grade, Packaging Type, and Weight",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsProcessing(true);
 
     const updatedBatch: CropBatch = {
       ...selectedBatch,
       status: "Approved",
-      grade: gradingData.grade as "A" | "B" | "C",
-      packagingType: gradingData.packagingType,
-      weight: parseFloat(gradingData.weight),
-      temperature: gradingData.temperature ? parseFloat(gradingData.temperature) : undefined,
-      humidity: gradingData.humidity ? parseFloat(gradingData.humidity) : undefined,
-      storageStartDate: gradingData.storageStartDate || undefined,
+      temperature: storageData.temperature ? parseFloat(storageData.temperature) : undefined,
+      humidity: storageData.humidity ? parseFloat(storageData.humidity) : undefined,
+      storageStartDate: storageData.storageStartDate || undefined,
     };
 
     const updatedBatches = batches.map(batch => 
@@ -127,10 +110,7 @@ const AdminDashboard = () => {
     localStorage.setItem("cropBatches", JSON.stringify(updatedBatches));
 
     setSelectedBatch(null);
-    setGradingData({
-      grade: "",
-      packagingType: "",
-      weight: "",
+    setStorageData({
       temperature: "",
       humidity: "",
       storageStartDate: "",
@@ -162,10 +142,7 @@ const AdminDashboard = () => {
     localStorage.setItem("cropBatches", JSON.stringify(updatedBatches));
 
     setSelectedBatch(null);
-    setGradingData({
-      grade: "",
-      packagingType: "",
-      weight: "",
+    setStorageData({
       temperature: "",
       humidity: "",
       storageStartDate: "",
@@ -300,10 +277,10 @@ const AdminDashboard = () => {
           </Card>
         </div>
 
-        {/* Batches Table */}
+        {/* All Crop Batches Table */}
         <Card>
           <CardHeader>
-            <CardTitle>All Crop Batches</CardTitle>
+            <CardTitle>All Crop Batches from All Farmers</CardTitle>
           </CardHeader>
           <CardContent>
             {batches.length === 0 ? (
@@ -322,6 +299,9 @@ const AdminDashboard = () => {
                       <TableHead>Quantity</TableHead>
                       <TableHead>Harvest Date</TableHead>
                       <TableHead>Location</TableHead>
+                      <TableHead>Grade</TableHead>
+                      <TableHead>Packaging</TableHead>
+                      <TableHead>Weight</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Submitted</TableHead>
                       <TableHead>Actions</TableHead>
@@ -340,6 +320,14 @@ const AdminDashboard = () => {
                         <TableCell>{batch.quantity} {batch.unit}</TableCell>
                         <TableCell>{batch.harvestDate}</TableCell>
                         <TableCell>{batch.location}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Scale className="h-4 w-4 text-blue-600" />
+                            <Badge variant="outline">{batch.grade}</Badge>
+                          </div>
+                        </TableCell>
+                        <TableCell>{batch.packagingType}</TableCell>
+                        <TableCell>{batch.weight} kg</TableCell>
                         <TableCell>
                           <Badge className={getStatusColor(batch.status)}>
                             {batch.status}
@@ -377,71 +365,34 @@ const AdminDashboard = () => {
                                 </div>
                                 
                                 <div>
-                                  <h3 className="font-semibold mb-2">Current Status</h3>
-                                  <Badge className={getStatusColor(batch.status)}>
-                                    {batch.status}
-                                  </Badge>
+                                  <h3 className="font-semibold mb-2">Farmer-Provided Details</h3>
+                                  <div className="space-y-2 text-sm bg-blue-50 p-3 rounded-md">
+                                    <p><span className="font-medium">Grade:</span> {batch.grade}</p>
+                                    <p><span className="font-medium">Packaging:</span> {batch.packagingType}</p>
+                                    <p><span className="font-medium">Weight:</span> {batch.weight} kg</p>
+                                  </div>
                                   
-                                  {batch.status === "Approved" && (
-                                    <div className="mt-4 space-y-2 text-sm">
-                                      <p><span className="font-medium">Grade:</span> {batch.grade}</p>
-                                      <p><span className="font-medium">Packaging:</span> {batch.packagingType}</p>
-                                      <p><span className="font-medium">Weight:</span> {batch.weight} kg</p>
-                                      {batch.temperature && <p><span className="font-medium">Temperature:</span> {batch.temperature}°C</p>}
-                                      {batch.humidity && <p><span className="font-medium">Humidity:</span> {batch.humidity}%</p>}
-                                      {batch.storageStartDate && <p><span className="font-medium">Storage Start:</span> {batch.storageStartDate}</p>}
-                                    </div>
-                                  )}
+                                  <div className="mt-4">
+                                    <h4 className="font-semibold mb-2">Current Status</h4>
+                                    <Badge className={getStatusColor(batch.status)}>
+                                      {batch.status}
+                                    </Badge>
+                                  </div>
                                 </div>
                               </div>
 
                               {batch.status === "Pending" && (
                                 <div className="space-y-4">
-                                  <h3 className="font-semibold">Grading & Processing Details</h3>
+                                  <h3 className="font-semibold">Storage Conditions (Optional)</h3>
                                   
-                                  <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                      <Label htmlFor="grade">Grade *</Label>
-                                      <Select value={gradingData.grade} onValueChange={(value) => setGradingData({...gradingData, grade: value})}>
-                                        <SelectTrigger>
-                                          <SelectValue placeholder="Select grade" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="A">Grade A</SelectItem>
-                                          <SelectItem value="B">Grade B</SelectItem>
-                                          <SelectItem value="C">Grade C</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                      <Label htmlFor="packagingType">Packaging Type *</Label>
-                                      <Input
-                                        id="packagingType"
-                                        placeholder="e.g., Jute bags, Plastic bags"
-                                        value={gradingData.packagingType}
-                                        onChange={(e) => setGradingData({...gradingData, packagingType: e.target.value})}
-                                      />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                      <Label htmlFor="weight">Processed Weight (kg) *</Label>
-                                      <Input
-                                        id="weight"
-                                        type="number"
-                                        placeholder="1000"
-                                        value={gradingData.weight}
-                                        onChange={(e) => setGradingData({...gradingData, weight: e.target.value})}
-                                      />
-                                    </div>
-
+                                  <div className="grid grid-cols-3 gap-4">
                                     <div className="space-y-2">
                                       <Label htmlFor="storageStartDate">Storage Start Date</Label>
                                       <Input
                                         id="storageStartDate"
                                         type="date"
-                                        value={gradingData.storageStartDate}
-                                        onChange={(e) => setGradingData({...gradingData, storageStartDate: e.target.value})}
+                                        value={storageData.storageStartDate}
+                                        onChange={(e) => setStorageData({...storageData, storageStartDate: e.target.value})}
                                       />
                                     </div>
 
@@ -451,8 +402,8 @@ const AdminDashboard = () => {
                                         id="temperature"
                                         type="number"
                                         placeholder="25"
-                                        value={gradingData.temperature}
-                                        onChange={(e) => setGradingData({...gradingData, temperature: e.target.value})}
+                                        value={storageData.temperature}
+                                        onChange={(e) => setStorageData({...storageData, temperature: e.target.value})}
                                       />
                                     </div>
 
@@ -462,8 +413,8 @@ const AdminDashboard = () => {
                                         id="humidity"
                                         type="number"
                                         placeholder="60"
-                                        value={gradingData.humidity}
-                                        onChange={(e) => setGradingData({...gradingData, humidity: e.target.value})}
+                                        value={storageData.humidity}
+                                        onChange={(e) => setStorageData({...storageData, humidity: e.target.value})}
                                       />
                                     </div>
                                   </div>
@@ -486,6 +437,17 @@ const AdminDashboard = () => {
                                       <X className="h-4 w-4 mr-2" />
                                       Reject Batch
                                     </Button>
+                                  </div>
+                                </div>
+                              )}
+
+                              {batch.status === "Approved" && (
+                                <div className="bg-green-50 p-4 rounded-md">
+                                  <h4 className="font-semibold mb-2">Storage Conditions</h4>
+                                  <div className="grid grid-cols-3 gap-4 text-sm">
+                                    {batch.storageStartDate && <p><span className="font-medium">Storage Start:</span> {batch.storageStartDate}</p>}
+                                    {batch.temperature && <p><span className="font-medium">Temperature:</span> {batch.temperature}°C</p>}
+                                    {batch.humidity && <p><span className="font-medium">Humidity:</span> {batch.humidity}%</p>}
                                   </div>
                                 </div>
                               )}
