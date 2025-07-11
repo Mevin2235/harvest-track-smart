@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -48,7 +47,7 @@ const SignUp = () => {
       return;
     }
 
-    // Store farmer data in localStorage (in real app, this would be sent to backend)
+    // Store farmer data in localStorage
     const farmers = JSON.parse(localStorage.getItem("farmers") || "[]");
     farmers.push({
       ...farmerData,
@@ -85,7 +84,7 @@ const SignUp = () => {
       return;
     }
 
-    // Check admin code (simple validation - in real app this would be more secure)
+    // Check admin code
     if (adminData.adminCode !== "ADMIN2024") {
       toast({
         title: "Invalid Admin Code",

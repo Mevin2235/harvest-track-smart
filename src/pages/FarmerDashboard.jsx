@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,27 +11,8 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { getCurrentUser } from "@/utils/auth";
 
-interface CropBatch {
-  id: string;
-  cropName: string;
-  quantity: number;
-  unit: string;
-  harvestDate: string;
-  location: string;
-  status: "Pending" | "Approved" | "Rejected";
-  grade?: "A" | "B" | "C";
-  packagingType?: string;
-  weight?: number;
-  temperature?: number;
-  humidity?: number;
-  storageStartDate?: string;
-  submittedDate: string;
-  farmerId: string;
-  farmerName: string;
-}
-
 const FarmerDashboard = () => {
-  const [batches, setBatches] = useState<CropBatch[]>([]);
+  const [batches, setBatches] = useState([]);
   const [newBatch, setNewBatch] = useState({
     cropName: "",
     quantity: "",
@@ -53,12 +33,10 @@ const FarmerDashboard = () => {
   }, []);
 
   const loadUserBatches = () => {
-    // Load all batches from localStorage
     const savedBatches = localStorage.getItem("cropBatches");
     if (savedBatches) {
       const allBatches = JSON.parse(savedBatches);
-      // Filter batches to show only current user's batches
-      const userBatches = allBatches.filter((batch: CropBatch) => 
+      const userBatches = allBatches.filter((batch) => 
         batch.farmerId === currentUser?.id || batch.farmerId === currentUser?.username
       );
       setBatches(userBatches);
@@ -86,7 +64,7 @@ const FarmerDashboard = () => {
 
     setIsSubmitting(true);
 
-    const batch: CropBatch = {
+    const batch = {
       id: `batch-${Date.now()}`,
       cropName: newBatch.cropName,
       quantity: parseInt(newBatch.quantity),
@@ -94,7 +72,7 @@ const FarmerDashboard = () => {
       harvestDate: newBatch.harvestDate,
       location: newBatch.location,
       status: "Pending",
-      grade: newBatch.grade as "A" | "B" | "C",
+      grade: newBatch.grade,
       packagingType: newBatch.packagingType,
       weight: parseFloat(newBatch.weight),
       submittedDate: new Date().toISOString().split("T")[0],
@@ -102,16 +80,13 @@ const FarmerDashboard = () => {
       farmerName: currentUser.username,
     };
 
-    // Load all existing batches
     const savedBatches = localStorage.getItem("cropBatches");
     const allBatches = savedBatches ? JSON.parse(savedBatches) : [];
     
-    // Add new batch to all batches
     const updatedAllBatches = [...allBatches, batch];
     localStorage.setItem("cropBatches", JSON.stringify(updatedAllBatches));
 
-    // Update local state with user's batches only
-    const userBatches = updatedAllBatches.filter((b: CropBatch) => 
+    const userBatches = updatedAllBatches.filter((b) => 
       b.farmerId === currentUser.id || b.farmerId === currentUser.username
     );
     setBatches(userBatches);
@@ -146,7 +121,7 @@ const FarmerDashboard = () => {
     });
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status) => {
     switch (status) {
       case "Approved":
         return "bg-green-100 text-green-800 border-green-200";
@@ -166,7 +141,6 @@ const FarmerDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
-      {/* Header */}
       <header className="bg-white shadow-sm border-b border-green-100">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -191,7 +165,6 @@ const FarmerDashboard = () => {
       </header>
 
       <div className="container mx-auto px-4 py-8">
-        {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <Card>
             <CardContent className="p-4">
@@ -243,7 +216,6 @@ const FarmerDashboard = () => {
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Submit New Batch */}
           <Card className="lg:col-span-1">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
@@ -353,7 +325,6 @@ const FarmerDashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Batch List */}
           <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle>My Crop Batches</CardTitle>

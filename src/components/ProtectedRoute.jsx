@@ -1,15 +1,9 @@
-
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { isAuthenticated, getUserType } from "@/utils/auth";
 import { toast } from "@/hooks/use-toast";
 
-interface ProtectedRouteProps {
-  children: React.ReactNode;
-  requiredUserType: "farmer" | "admin";
-}
-
-const ProtectedRoute = ({ children, requiredUserType }: ProtectedRouteProps) => {
+const ProtectedRoute = ({ children, requiredUserType }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,7 +25,6 @@ const ProtectedRoute = ({ children, requiredUserType }: ProtectedRouteProps) => 
         variant: "destructive",
       });
       navigate("/");
-      return;
     }
   }, [navigate, requiredUserType]);
 

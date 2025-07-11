@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +12,7 @@ const Index = () => {
   const [loginData, setLoginData] = useState({ username: "", password: "" });
   const navigate = useNavigate();
 
-  const handleLogin = (userType: "farmer" | "admin") => {
+  const handleLogin = (userType) => {
     if (!loginData.username || !loginData.password) {
       toast({
         title: "Login Required",
@@ -26,7 +25,7 @@ const Index = () => {
     // Check credentials based on user type
     if (userType === "farmer") {
       const farmers = JSON.parse(localStorage.getItem("farmers") || "[]");
-      const farmer = farmers.find((f: any) => 
+      const farmer = farmers.find((f) => 
         f.username === loginData.username && f.password === loginData.password
       );
 
@@ -45,7 +44,7 @@ const Index = () => {
       localStorage.setItem("username", farmer.username);
     } else {
       const admins = JSON.parse(localStorage.getItem("admins") || "[]");
-      const admin = admins.find((a: any) => 
+      const admin = admins.find((a) => 
         a.username === loginData.username && a.password === loginData.password
       );
 

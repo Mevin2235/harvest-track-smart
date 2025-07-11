@@ -1,32 +1,36 @@
-
-export const isAuthenticated = (): boolean => {
+// Check if user is authenticated
+export const isAuthenticated = () => {
   const userType = localStorage.getItem("userType");
   const currentUser = localStorage.getItem("currentUser");
   return !!(userType && currentUser);
 };
 
-export const getUserType = (): string | null => {
+// Get user type from localStorage
+export const getUserType = () => {
   return localStorage.getItem("userType");
 };
 
-export const getCurrentUser = (): any => {
+// Get full current user object from localStorage
+export const getCurrentUser = () => {
   const user = localStorage.getItem("currentUser");
   return user ? JSON.parse(user) : null;
 };
 
-export const logout = (): void => {
+// Logout: clear localStorage
+export const logout = () => {
   localStorage.removeItem("userType");
   localStorage.removeItem("currentUser");
   localStorage.removeItem("username");
 };
 
-export const requireAuth = (userType: "farmer" | "admin"): boolean => {
+// Check if user is authenticated and of a required type
+export const requireAuth = (userType) => {
   const currentUserType = getUserType();
   return isAuthenticated() && currentUserType === userType;
 };
 
-// Helper function to get unique user identifier
-export const getUserId = (): string | null => {
+// Get unique user identifier
+export const getUserId = () => {
   const currentUser = getCurrentUser();
   return currentUser?.id || currentUser?.username || null;
 };
