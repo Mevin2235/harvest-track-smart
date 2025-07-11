@@ -11,6 +11,8 @@ const AdminDashboard = () => {
     storageStartDate: "",
   });
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState({});
   const navigate = useNavigate();
   const username = localStorage.getItem("username") || "Admin";
 
@@ -27,10 +29,70 @@ const AdminDashboard = () => {
 
   const handleProcessBatch = (batch) => {
     setSelectedBatch(batch);
+    setIsEditing(false);
     setStorageData({
       temperature: batch.temperature?.toString() || "",
       humidity: batch.humidity?.toString() || "",
       storageStartDate: batch.storageStartDate || "",
+    });
+  };
+
+  const handleEditBatch = (batch) => {
+    setSelectedBatch(batch);
+    setIsEditing(true);
+    setEditData({
+      cropName: batch.cropName,
+      quantity: batch.quantity,
+      unit: batch.unit,
+      harvestDate: batch.harvestDate,
+      location: batch.location,
+      grade: batch.grade,
+      packagingType: batch.packagingType,
+      weight: batch.weight,
+    });
+    setStorageData({
+      temperature: batch.temperature?.toString() || "",
+      humidity: batch.humidity?.toString() || "",
+      storageStartDate: batch.storageStartDate || "",
+    });
+  };
+
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSaveEdit = () => {
+    if (!selectedBatch) return;
+
+    setIsProcessing(true);
+
+    const updatedBatch = {
+      ...selectedBatch,
+      ...editData,
+      temperature: storageData.temperature ? parseFloat(storageData.temperature) : undefined,
+      humidity: storageData.humidity ? parseFloat(storageData.humidity) : undefined,
+      storageStartDate: storageData.storageStartDate || undefined,
+    };
+
+    const updatedBatches = batches.map(batch => 
+      batch.id === selectedBatch.id ? updatedBatch : batch
+    );
+
+    setBatches(updatedBatches);
+    localStorage.setItem("cropBatches", JSON.stringify(updatedBatches));
+
+    setSelectedBatch(null);
+    setEditData({});
+    setIsEditing(false);
+    setIsProcessing(false);
+
+    toast({
+      title: "Batch Updated",
+      description: `Crop batch from ${updatedBatch.farmerName} has been updated successfully`,
     });
   };
 
@@ -303,7 +365,7 @@ const AdminDashboard = () => {
                           </span>
                         </td>
                         <td style={{ padding: "1rem" }}>{batch.submittedDate}</td>
-                        <td style={{ padding: "1rem" }}>
+                        <td style={{ padding: "1rem", display: "flex", gap: "0.5rem" }}>
                           <button 
                             onClick={() => handleProcessBatch(batch)}
                             style={{
@@ -317,10 +379,27 @@ const AdminDashboard = () => {
                             }}
                           >
                             <svg style={{ height: "1rem", width: "1rem", marginRight: "0.25rem" }} viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                              <circle cx="12" cy="12" r="3" />
+                              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                             </svg>
                             Process
+                          </button>
+                          <button 
+                            onClick={() => handleEditBatch(batch)}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              padding: "0.375rem 0.75rem",
+                              borderRadius: "0.375rem",
+                              border: "1px solid #e5e7eb",
+                              backgroundColor: "transparent",
+                              fontSize: "0.875rem"
+                            }}
+                          >
+                            <svg style={{ height: "1rem", width: "1rem", marginRight: "0.25rem" }} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            </svg>
+                            Edit
                           </button>
                         </td>
                       </tr>
@@ -358,7 +437,7 @@ const AdminDashboard = () => {
           }}>
             <div style={{ padding: "1.5rem", borderBottom: "1px solid #e5e7eb" }}>
               <h3 style={{ fontSize: "1.125rem", fontWeight: "600" }}>
-                Process Crop Batch - {selectedBatch.farmerName || selectedBatch.farmerId}
+                {isEditing ? "Edit" : "Process"} Crop Batch - {selectedBatch.farmerName || selectedBatch.farmerId}
               </h3>
             </div>
             
@@ -373,19 +452,101 @@ const AdminDashboard = () => {
                   </div>
                   <div>
                     <p style={{ fontSize: "0.875rem", color: "#6b7280" }}>Crop</p>
-                    <p style={{ fontWeight: "500" }}>{selectedBatch.cropName}</p>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        name="cropName"
+                        value={editData.cropName}
+                        onChange={handleEditChange}
+                        style={{
+                          width: "100%",
+                          padding: "0.5rem 0.75rem",
+                          borderRadius: "0.375rem",
+                          border: "1px solid #e5e7eb",
+                          fontSize: "0.875rem"
+                        }}
+                      />
+                    ) : (
+                      <p style={{ fontWeight: "500" }}>{selectedBatch.cropName}</p>
+                    )}
                   </div>
                   <div>
                     <p style={{ fontSize: "0.875rem", color: "#6b7280" }}>Quantity</p>
-                    <p style={{ fontWeight: "500" }}>{selectedBatch.quantity} {selectedBatch.unit}</p>
+                    {isEditing ? (
+                      <div style={{ display: "flex", gap: "0.5rem" }}>
+                        <input
+                          type="number"
+                          name="quantity"
+                          value={editData.quantity}
+                          onChange={handleEditChange}
+                          style={{
+                            width: "70%",
+                            padding: "0.5rem 0.75rem",
+                            borderRadius: "0.375rem",
+                            border: "1px solid #e5e7eb",
+                            fontSize: "0.875rem"
+                          }}
+                        />
+                        <select
+                          name="unit"
+                          value={editData.unit}
+                          onChange={handleEditChange}
+                          style={{
+                            width: "30%",
+                            padding: "0.5rem 0.75rem",
+                            borderRadius: "0.375rem",
+                            border: "1px solid #e5e7eb",
+                            fontSize: "0.875rem"
+                          }}
+                        >
+                          <option value="kg">kg</option>
+                          <option value="tons">tons</option>
+                          <option value="quintals">quintals</option>
+                        </select>
+                      </div>
+                    ) : (
+                      <p style={{ fontWeight: "500" }}>{selectedBatch.quantity} {selectedBatch.unit}</p>
+                    )}
                   </div>
                   <div>
                     <p style={{ fontSize: "0.875rem", color: "#6b7280" }}>Harvest Date</p>
-                    <p style={{ fontWeight: "500" }}>{selectedBatch.harvestDate}</p>
+                    {isEditing ? (
+                      <input
+                        type="date"
+                        name="harvestDate"
+                        value={editData.harvestDate}
+                        onChange={handleEditChange}
+                        style={{
+                          width: "100%",
+                          padding: "0.5rem 0.75rem",
+                          borderRadius: "0.375rem",
+                          border: "1px solid #e5e7eb",
+                          fontSize: "0.875rem"
+                        }}
+                      />
+                    ) : (
+                      <p style={{ fontWeight: "500" }}>{selectedBatch.harvestDate}</p>
+                    )}
                   </div>
                   <div>
                     <p style={{ fontSize: "0.875rem", color: "#6b7280" }}>Location</p>
-                    <p style={{ fontWeight: "500" }}>{selectedBatch.location}</p>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        name="location"
+                        value={editData.location}
+                        onChange={handleEditChange}
+                        style={{
+                          width: "100%",
+                          padding: "0.5rem 0.75rem",
+                          borderRadius: "0.375rem",
+                          border: "1px solid #e5e7eb",
+                          fontSize: "0.875rem"
+                        }}
+                      />
+                    ) : (
+                      <p style={{ fontWeight: "500" }}>{selectedBatch.location}</p>
+                    )}
                   </div>
                   <div>
                     <p style={{ fontSize: "0.875rem", color: "#6b7280" }}>Submitted</p>
@@ -407,37 +568,95 @@ const AdminDashboard = () => {
                 }}>
                   <div>
                     <p style={{ fontSize: "0.875rem", color: "#6b7280" }}>Grade</p>
-                    <p style={{ fontWeight: "500" }}>{selectedBatch.grade || "Not specified"}</p>
+                    {isEditing ? (
+                      <select
+                        name="grade"
+                        value={editData.grade || ""}
+                        onChange={handleEditChange}
+                        style={{
+                          width: "100%",
+                          padding: "0.5rem 0.75rem",
+                          borderRadius: "0.375rem",
+                          border: "1px solid #e5e7eb",
+                          fontSize: "0.875rem"
+                        }}
+                      >
+                        <option value="">Select grade</option>
+                        <option value="A">Grade A</option>
+                        <option value="B">Grade B</option>
+                        <option value="C">Grade C</option>
+                      </select>
+                    ) : (
+                      <p style={{ fontWeight: "500" }}>{selectedBatch.grade || "Not specified"}</p>
+                    )}
                   </div>
                   <div>
                     <p style={{ fontSize: "0.875rem", color: "#6b7280" }}>Packaging</p>
-                    <p style={{ fontWeight: "500" }}>{selectedBatch.packagingType || "Not specified"}</p>
+                    {isEditing ? (
+                      <select
+                        name="packagingType"
+                        value={editData.packagingType || ""}
+                        onChange={handleEditChange}
+                        style={{
+                          width: "100%",
+                          padding: "0.5rem 0.75rem",
+                          borderRadius: "0.375rem",
+                          border: "1px solid #e5e7eb",
+                          fontSize: "0.875rem"
+                        }}
+                      >
+                        <option value="">Select packaging</option>
+                        <option value="Bags">Bags</option>
+                        <option value="Crates">Crates</option>
+                        <option value="Boxes">Boxes</option>
+                      </select>
+                    ) : (
+                      <p style={{ fontWeight: "500" }}>{selectedBatch.packagingType || "Not specified"}</p>
+                    )}
                   </div>
                   <div>
-                    <p style={{ fontSize: "0.875rem", color: "#6b7280" }}>Weight</p>
-                    <p style={{ fontWeight: "500" }}>{selectedBatch.weight ? `${selectedBatch.weight} kg` : "Not specified"}</p>
+                    <p style={{ fontSize: "0.875rem", color: "#6b7280" }}>Weight (kg)</p>
+                    {isEditing ? (
+                      <input
+                        type="number"
+                        name="weight"
+                        value={editData.weight || ""}
+                        onChange={handleEditChange}
+                        style={{
+                          width: "100%",
+                          padding: "0.5rem 0.75rem",
+                          borderRadius: "0.375rem",
+                          border: "1px solid #e5e7eb",
+                          fontSize: "0.875rem"
+                        }}
+                      />
+                    ) : (
+                      <p style={{ fontWeight: "500" }}>{selectedBatch.weight ? `${selectedBatch.weight} kg` : "Not specified"}</p>
+                    )}
                   </div>
                 </div>
               </div>
 
               {/* Current Status */}
-              <div style={{ marginBottom: "1.5rem" }}>
-                <h4 style={{ fontSize: "1rem", fontWeight: "600", marginBottom: "0.75rem" }}>Current Status</h4>
-                <span style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  padding: "0.25rem 0.5rem",
-                  borderRadius: "0.375rem",
-                  fontSize: "0.875rem",
-                  fontWeight: "500",
-                  ...getStatusColor(selectedBatch.status)
-                }}>
-                  {selectedBatch.status}
-                </span>
-              </div>
+              {!isEditing && (
+                <div style={{ marginBottom: "1.5rem" }}>
+                  <h4 style={{ fontSize: "1rem", fontWeight: "600", marginBottom: "0.75rem" }}>Current Status</h4>
+                  <span style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    padding: "0.25rem 0.5rem",
+                    borderRadius: "0.375rem",
+                    fontSize: "0.875rem",
+                    fontWeight: "500",
+                    ...getStatusColor(selectedBatch.status)
+                  }}>
+                    {selectedBatch.status}
+                  </span>
+                </div>
+              )}
 
               {/* Storage Conditions */}
-              {selectedBatch.status === "Pending" && (
+              {(selectedBatch.status === "Pending" || isEditing) && (
                 <div style={{ marginBottom: "1.5rem" }}>
                   <h4 style={{ fontSize: "1rem", fontWeight: "600", marginBottom: "0.75rem" }}>Storage Conditions (Optional)</h4>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "1rem" }}>
@@ -526,38 +745,38 @@ const AdminDashboard = () => {
               )}
 
               {/* Action Buttons */}
-              {selectedBatch.status === "Pending" && (
-                <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem", paddingTop: "1rem" }}>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem", paddingTop: "1rem" }}>
+                <button
+                  onClick={() => {
+                    setSelectedBatch(null);
+                    setIsEditing(false);
+                  }}
+                  disabled={isProcessing}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    padding: "0.5rem 1rem",
+                    borderRadius: "0.375rem",
+                    backgroundColor: "#e5e7eb",
+                    color: "#374151",
+                    border: "none",
+                    fontWeight: "500",
+                    cursor: "pointer"
+                  }}
+                >
+                  Cancel
+                </button>
+                
+                {isEditing ? (
                   <button
-                    onClick={handleRejectBatch}
+                    onClick={handleSaveEdit}
                     disabled={isProcessing}
                     style={{
                       display: "flex",
                       alignItems: "center",
                       padding: "0.5rem 1rem",
                       borderRadius: "0.375rem",
-                      backgroundColor: "#fee2e2",
-                      color: "#991b1b",
-                      border: "none",
-                      fontWeight: "500",
-                      cursor: "pointer"
-                    }}
-                  >
-                    <svg style={{ height: "1rem", width: "1rem", marginRight: "0.5rem" }} viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <line x1="18" y1="6" x2="6" y2="18" />
-                      <line x1="6" y1="6" x2="18" y2="18" />
-                    </svg>
-                    Reject Batch
-                  </button>
-                  <button
-                    onClick={handleApproveBatch}
-                    disabled={isProcessing}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      padding: "0.5rem 1rem",
-                      borderRadius: "0.375rem",
-                      backgroundColor: "#166534",
+                      backgroundColor: "#2563eb",
                       color: "white",
                       border: "none",
                       fontWeight: "500",
@@ -565,12 +784,58 @@ const AdminDashboard = () => {
                     }}
                   >
                     <svg style={{ height: "1rem", width: "1rem", marginRight: "0.5rem" }} viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <polyline points="20 6 9 17 4 12" />
+                      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                      <polyline points="17 21 17 13 7 13 7 21" />
+                      <polyline points="7 3 7 8 15 8" />
                     </svg>
-                    Approve Batch
+                    Save Changes
                   </button>
-                </div>
-              )}
+                ) : selectedBatch.status === "Pending" ? (
+                  <>
+                    <button
+                      onClick={handleRejectBatch}
+                      disabled={isProcessing}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        padding: "0.5rem 1rem",
+                        borderRadius: "0.375rem",
+                        backgroundColor: "#fee2e2",
+                        color: "#991b1b",
+                        border: "none",
+                        fontWeight: "500",
+                        cursor: "pointer"
+                      }}
+                    >
+                      <svg style={{ height: "1rem", width: "1rem", marginRight: "0.5rem" }} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                      Reject Batch
+                    </button>
+                    <button
+                      onClick={handleApproveBatch}
+                      disabled={isProcessing}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        padding: "0.5rem 1rem",
+                        borderRadius: "0.375rem",
+                        backgroundColor: "#166534",
+                        color: "white",
+                        border: "none",
+                        fontWeight: "500",
+                        cursor: "pointer"
+                      }}
+                    >
+                      <svg style={{ height: "1rem", width: "1rem", marginRight: "0.5rem" }} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      Approve Batch
+                    </button>
+                  </>
+                ) : null}
+              </div>
             </div>
           </div>
         </div>
